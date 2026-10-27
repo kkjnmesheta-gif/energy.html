@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Pengurusan Tenaga & Kertas | KK Jempol 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── Design Tokens ─────────────────────────────── */
+    :root {
+      --bg:            #f0fdf9;
+      --surface:       #ffffff;
+      --border:        #d1fae5;
+      --text:          #064e3b;
+      --muted:         #6b7280;
+      --grad-header:   linear-gradient(135deg, #064e3b 0%, #1d4ed8 100%);
+      --grad-elektrik: linear-gradient(135deg, #f59e0b, #d97706);
+      --grad-air:      linear-gradient(135deg, #0284c7, #0ea5e9);
+      --grad-kertas:   linear-gradient(135deg, #10b981, #059669);
+      --grad-jumlah:   linear-gradient(135deg, #6366f1, #4f46e5);
+      --c-elektrik:    #f59e0b;
+      --c-air:         #3b82f6;
+      --c-kertas:      #10b981;
+      --c-jumlah:      #6366f1;
+      --radius:        12px;
+      --radius-sm:     8px;
+      --shadow:        0 2px 8px rgba(0,0,0,.07), 0 4px 20px rgba(0,0,0,.05);
+      --shadow-hover:  0 8px 24px rgba(0,0,0,.13), 0 16px 40px rgba(0,0,0,.08);
+      --gap:           1.25rem;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      background: var(--bg);
+      color: #1f2937;
+      min-height: 100vh;
+    }
+
+    /* ── Header ────────────────────────────────────── */
+    header {
+      background: var(--grad-header);
+      padding: 0 2rem;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 20px rgba(6,78,59,.45);
+    }
+    .hdr-logo  { font-size: 2rem; line-height: 1; }
+    .hdr-text  { flex: 1; }
+    .hdr-inst  { font-size: 0.7rem; font-weight: 500; color: rgba(255,255,255,.65); text-transform: uppercase; letter-spacing: 0.1em; }
+    .hdr-title { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -.01em; }
+    .hdr-badge {
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: .3rem .9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+    .hdr-prepared {
+      text-align: right;
+      line-height: 1.35;
+      margin-left: 1rem;
+    }
+    .hdr-prepared-label {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,.6);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .hdr-prepared-name {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .hdr-prepared-role {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,.7);
+    }
+
+    /* ── Tab Nav ───────────────────────────────────── */
+    .tab-nav {
+      background: #fff;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      padding: 0 2rem;
+    }
+    .tab-btn {
+      padding: .85rem 1.5rem;
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      font-family: inherit;
+    }
+    .tab-btn:hover { color: var(--c-kertas); }
+    .tab-btn.active { color: var(--c-kertas); border-bottom-color: var(--c-kertas); }
+
+    /* ── Main ──────────────────────────────────────── */
+    main { max-width: 1200px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .section-label {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--c-kertas); margin-bottom: .9rem;
+    }
+
+    /* ── Summary Cards ─────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--gap);
+      margin-bottom: 2rem;
+    }
+    .sum-card {
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem 1.5rem 1.3rem;
+      color: #fff;
+      display: flex; flex-direction: column; gap: .35rem;
+      transition: transform .2s, box-shadow .2s;
+      cursor: default;
+    }
+    .sum-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+    .card-icon  { font-size: 1.8rem; line-height: 1; margin-bottom: .1rem; }
+    .card-label { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; opacity: .85; }
+    .card-value { font-size: 2rem; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+    .card-trend { font-size: .78rem; font-weight: 600; display: flex; align-items: center; gap: .3rem; margin-top: .2rem; }
+    .trend-up   { color: #fca5a5; }
+    .trend-down { color: #a7f3d0; }
+    .trend-eq   { color: rgba(255,255,255,.7); }
+    .chg-up     { color: #dc2626; font-weight: 600; font-size: .8rem; }
+    .chg-down   { color: #16a34a; font-weight: 600; font-size: .8rem; }
+    .chg-eq     { color: #9ca3af; font-size: .8rem; }
+    .card-sub   { font-size: .75rem; opacity: .72; margin-top: .1rem; }
+
+    /* ── KPI Rows ──────────────────────────────────── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--gap);
+      margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1rem 1.25rem;
+      border-left: 4px solid var(--c-kertas);
+    }
+    .kpi-card.e { border-left-color: var(--c-elektrik); }
+    .kpi-card.a { border-left-color: var(--c-air); }
+    .kpi-card.k { border-left-color: var(--c-kertas); }
+    .kpi-card.t { border-left-color: var(--c-jumlah); }
+    .kpi-value  { font-size: 1.4rem; font-weight: 800; color: #064e3b; }
+    .kpi-label  { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: .25rem; }
+
+    /* ── Chart Grid ────────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: var(--gap);
+    }
+    .chart-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem 1.5rem 1.5rem;
+    }
+    .chart-title {
+      font-size: .85rem; font-weight: 700; color: var(--text);
+      margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .chart-wrap { position: relative; height: 280px; }
+
+    /* ── Tables ────────────────────────────────────── */
+    .rekod-section { margin-bottom: 2.5rem; }
+    .rekod-section h3 { font-size: .95rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .table-wrap { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; margin-bottom: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead tr { background: #f0fdf4; border-bottom: 2px solid var(--border); }
+    th { padding: .65rem .85rem; text-align: right; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); white-space: nowrap; }
+    th:first-child { text-align: left; }
+    td { padding: .6rem .85rem; border-bottom: 1px solid #f3f4f6; color: #1f2937; text-align: right; vertical-align: middle; }
+    td:first-child { text-align: left; font-weight: 600; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f0fdf4; }
+    .total-row td { font-weight: 700; background: #f0fdf4; color: #064e3b; border-top: 2px solid var(--border); }
+    .highlight-row td { background: #ecfdf5 !important; }
+
+    /* ── Forms ─────────────────────────────────────── */
+    .form-panel {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+    .form-panel.open { display: block; }
+    .form-panel h4 { font-size: .88rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+    .form-field { display: flex; flex-direction: column; gap: .3rem; }
+    .form-field label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .form-field input, .form-field select {
+      padding: .45rem .75rem; border: 1.5px solid #d1d5db; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: .84rem; color: #1f2937; background: #fff; outline: none;
+    }
+    .form-field input:focus, .form-field select:focus { border-color: var(--c-kertas); }
+    .form-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    /* ── Buttons ───────────────────────────────────── */
+    .btn {
+      padding: .48rem 1.1rem; border: none; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: .84rem; font-weight: 600;
+      cursor: pointer; transition: opacity .15s, transform .1s;
+    }
+    .btn:hover { opacity: .88; }
+    .btn:active { transform: scale(.97); }
+    .btn-green  { background: var(--c-kertas); color: #fff; }
+    .btn-blue   { background: var(--c-air); color: #fff; }
+    .btn-grey   { background: #e5e7eb; color: #374151; }
+    .btn-red    { background: #ef4444; color: #fff; }
+    .toolbar    { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; }
+
+    /* ── Alert Toast ───────────────────────────────── */
+    #alert-toast {
+      display: none; position: fixed; top: 82px; right: 1.5rem;
+      background: #064e3b; color: #fff; padding: .75rem 1.25rem;
+      border-radius: var(--radius-sm); font-size: .84rem; font-weight: 500;
+      z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,.2); max-width: 340px;
+    }
+
+    /* ── Login Overlay ─────────────────────────────── */
+    #login-overlay {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #064e3b 0%, #1d4ed8 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    #login-box {
+      background: #fff; border-radius: 14px;
+      padding: 2.5rem 2.2rem; width: 100%; max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      text-align: center;
+    }
+    #login-box .login-logo { font-size: 2.8rem; margin-bottom: .4rem; }
+    #login-box .login-title {
+      font-size: 1.1rem; font-weight: 800; color: #064e3b;
+      margin-bottom: .2rem; letter-spacing: -.01em;
+    }
+    #login-box .login-sub {
+      font-size: .75rem; color: #6b7280; margin-bottom: 1.8rem;
+    }
+    #login-box .lf-group {
+      text-align: left; margin-bottom: 1rem;
+    }
+    #login-box .lf-group label {
+      display: block; font-size: .72rem; font-weight: 700;
+      color: #374151; text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: .35rem;
+    }
+    #login-box .lf-group input {
+      width: 100%; box-sizing: border-box;
+      padding: .55rem .85rem; border: 1.5px solid #d1d5db;
+      border-radius: 8px; font-family: inherit; font-size: .9rem;
+      color: #1f2937; outline: none; transition: border-color .15s;
+    }
+    #login-box .lf-group input:focus { border-color: #064e3b; }
+    #login-btn {
+      width: 100%; padding: .65rem; margin-top: .6rem;
+      background: linear-gradient(135deg, #064e3b, #1d4ed8);
+      color: #fff; border: none; border-radius: 8px;
+      font-family: inherit; font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: opacity .15s;
+    }
+    #login-btn:hover { opacity: .88; }
+    #login-error {
+      display: none; margin-top: .9rem;
+      background: #fef2f2; border: 1px solid #fca5a5;
+      color: #b91c1c; border-radius: 7px;
+      padding: .5rem .75rem; font-size: .8rem; font-weight: 600;
+    }
+    #app-wrapper { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Overlay ────────────────────────────── -->
+<div id="login-overlay">
+  <div id="login-box">
+    <div class="login-logo">⚡</div>
+    <div class="login-title">Dashboard Pengurusan Tenaga &amp; Kertas</div>
+    <div class="login-sub">Kolej Komuniti Jempol, Negeri Sembilan · 2026</div>
+    <div class="lf-group">
+      <label>Nama Pengguna</label>
+      <input type="text" id="li-user" placeholder="Username" autocomplete="username" />
+    </div>
+    <div class="lf-group">
+      <label>Kata Laluan</label>
+      <input type="password" id="li-pass" placeholder="Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <button id="login-btn" onclick="doLogin()">🔐 Log Masuk</button>
+    <div id="login-error">❌ Nama pengguna atau kata laluan tidak sah.</div>
+  </div>
+</div>
+
+<!-- ── App Wrapper (hidden until login) ─────────── -->
+<div id="app-wrapper">
+
+<header>
+  <div class="hdr-logo">⚡</div>
+  <div class="hdr-text">
+    <div class="hdr-inst">Kolej Komuniti Jempol, Negeri Sembilan</div>
+    <div class="hdr-title">Dashboard Pengurusan Tenaga &amp; Kertas</div>
+  </div>
+  <div class="hdr-badge">2026</div>
+  <div class="hdr-prepared">
+    <div class="hdr-prepared-label">Disediakan oleh</div>
+    <div class="hdr-prepared-name">Pn. Mesheta binti Mohd Noor</div>
+    <div class="hdr-prepared-role">Pengurus Unit SmartGreen</div>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showView('overview',this)">📊 Overview</button>
+  <button class="tab-btn" onclick="showView('graf',this)">📈 Graf &amp; Trend</button>
+  <button class="tab-btn" onclick="showView('rekod',this)">📋 Rekod</button>
+</nav>
+
+<div id="alert-toast"></div>
+
+<main>
+
+  <!-- ══ TAB 1: OVERVIEW ══ -->
+  <div id="view-overview" class="view active">
+    <p class="section-label">Ringkasan Bulan Terkini</p>
+    <div class="cards-grid" id="summary-cards"></div>
+    <p class="section-label">Jumlah Kumulatif Setahun (YTD)</p>
+    <div class="kpi-row" id="ytd-row"></div>
+    <p class="section-label">Pencapaian Utama</p>
+    <div class="kpi-row" id="highlight-row"></div>
+  </div>
+
+  <!-- ══ TAB 2: GRAF ══ -->
+  <div id="view-graf" class="view">
+    <p class="section-label">Visualisasi Data 2026</p>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">📈 Trend Bil Bulanan 2026</div>
+        <div class="chart-wrap"><canvas id="chartLine"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📊 Perbandingan Bil Bulanan</div>
+        <div class="chart-wrap"><canvas id="chartBar"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🥧 Agihan Kos Keseluruhan (YTD)</div>
+        <div class="chart-wrap"><canvas id="chartPie1"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🥧 Permohonan Kertas ikut Unit (YTD)</div>
+        <div class="chart-wrap"><canvas id="chartPie2"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 3: REKOD ══ -->
+  <div id="view-rekod" class="view">
+
+    <!-- Bills section -->
+    <div class="rekod-section">
+      <h3>💡💧📄 Rekod Bil Bulanan</h3>
+      <div class="toolbar">
+        <button class="btn btn-green" onclick="togglePanel('bil-form')">✏️ Kemaskini Bil</button>
+      </div>
+      <div class="form-panel" id="bil-form">
+        <h4>Kemaskini Bil Bulanan</h4>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Bulan</label>
+            <select id="bf-month" onchange="fillBilForm()"></select>
+          </div>
+          <div class="form-field">
+            <label>Elektrik (RM)</label>
+            <input type="number" id="bf-elektrik" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-field">
+            <label>Air (RM)</label>
+            <input type="number" id="bf-air" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-field">
+            <label>Kertas (RM)</label>
+            <input type="number" id="bf-kertas" min="0" step="0.01" placeholder="0.00" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-green" onclick="saveBil()">💾 Simpan</button>
+          <button class="btn btn-grey" onclick="togglePanel('bil-form')">Batal</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Bulan</th><th>Elektrik (RM)</th><th>% ±</th><th>Air (RM)</th><th>% ±</th>
+              <th>Kertas (RM)</th><th>% ±</th><th>Jumlah (RM)</th><th>% ±</th>
+            </tr>
+          </thead>
+          <tbody id="bills-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Paper section -->
+    <div class="rekod-section">
+      <h3>📄 Rekod Permohonan Kertas (Rim) ikut Unit</h3>
+      <div class="toolbar">
+        <button class="btn btn-blue" onclick="togglePanel('kertas-form')">✏️ Kemaskini Kertas</button>
+        <button class="btn btn-red" onclick="resetData()">🔄 Reset ke Data Asal</button>
+      </div>
+      <div class="form-panel" id="kertas-form">
+        <h4>Kemaskini Permohonan Kertas</h4>
+        <div class="form-grid" id="kertas-form-grid"></div>
+        <div class="form-actions">
+          <button class="btn btn-blue" onclick="saveKertas()">💾 Simpan</button>
+          <button class="btn btn-grey" onclick="togglePanel('kertas-form')">Batal</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="paper-table">
+          <thead id="paper-thead"></thead>
+          <tbody id="paper-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- end view-rekod -->
+
+</main>
+
+<script>
+/* ════════════════════════════════════════════════
+   CONSTANTS
+════════════════════════════════════════════════ */
+const MONTHS = ['Januari','Februari','Mac','April','Mei','Jun',
+                'Julai','Ogos','September','Oktober','November','Disember'];
+const UNITS  = ['PENGURUSAN','SAU','SKE','STS','UPA','HEP','PSH','EXAM','SMARTGREEN','PENTADBIRAN','ICT'];
+const LS_BILLS = 'energy_bills_2026';
+const LS_PAPER = 'energy_paper_2026';
+
+/* ════════════════════════════════════════════════
+   DEFAULT SAMPLE DATA
+════════════════════════════════════════════════ */
+const DEFAULT_BILLS = [
+  { month:'Januari',   elektrik:4150, air:362, kertas:820 },
+  { month:'Februari',  elektrik:3980, air:344, kertas:580 },
+  { month:'Mac',       elektrik:4320, air:371, kertas:640 },
+  { month:'April',     elektrik:4580, air:388, kertas:610 },
+  { month:'Mei',       elektrik:4890, air:402, kertas:720 },
+  { month:'Jun',       elektrik:5620, air:445, kertas:980 },
+  { month:'Julai',     elektrik:6100, air:460, kertas:540 },
+  { month:'Ogos',      elektrik:6240, air:472, kertas:520 },
+  { month:'September', elektrik:5480, air:418, kertas:560 },
+  { month:'Oktober',   elektrik:4920, air:395, kertas:630 },
+  { month:'November',  elektrik:4650, air:378, kertas:890 },
+  { month:'Disember',  elektrik:4380, air:360, kertas:750 },
+];
+
+const DEFAULT_PAPER = [
+  { month:'Januari',   units:{PENGURUSAN:22,SAU:14,SKE:35,STS:28,UPA:10,HEP:18,PSH:12,EXAM:8,SMARTGREEN:5,PENTADBIRAN:24,ICT:16} },
+  { month:'Februari',  units:{PENGURUSAN:18,SAU:12,SKE:30,STS:24,UPA:8,HEP:15,PSH:10,EXAM:6,SMARTGREEN:4,PENTADBIRAN:20,ICT:14} },
+  { month:'Mac',       units:{PENGURUSAN:20,SAU:13,SKE:32,STS:26,UPA:9,HEP:16,PSH:11,EXAM:10,SMARTGREEN:5,PENTADBIRAN:22,ICT:15} },
+  { month:'April',     units:{PENGURUSAN:19,SAU:12,SKE:28,STS:22,UPA:9,HEP:14,PSH:10,EXAM:12,SMARTGREEN:4,PENTADBIRAN:20,ICT:13} },
+  { month:'Mei',       units:{PENGURUSAN:21,SAU:14,SKE:33,STS:27,UPA:10,HEP:17,PSH:11,EXAM:15,SMARTGREEN:5,PENTADBIRAN:23,ICT:15} },
+  { month:'Jun',       units:{PENGURUSAN:25,SAU:16,SKE:40,STS:34,UPA:12,HEP:20,PSH:14,EXAM:40,SMARTGREEN:6,PENTADBIRAN:28,ICT:18} },
+  { month:'Julai',     units:{PENGURUSAN:16,SAU:10,SKE:26,STS:20,UPA:7,HEP:12,PSH:8,EXAM:8,SMARTGREEN:3,PENTADBIRAN:18,ICT:11} },
+  { month:'Ogos',      units:{PENGURUSAN:17,SAU:11,SKE:27,STS:21,UPA:7,HEP:13,PSH:9,EXAM:9,SMARTGREEN:4,PENTADBIRAN:19,ICT:12} },
+  { month:'September', units:{PENGURUSAN:19,SAU:13,SKE:29,STS:23,UPA:8,HEP:15,PSH:10,EXAM:10,SMARTGREEN:4,PENTADBIRAN:21,ICT:13} },
+  { month:'Oktober',   units:{PENGURUSAN:20,SAU:13,SKE:31,STS:25,UPA:9,HEP:16,PSH:11,EXAM:11,SMARTGREEN:5,PENTADBIRAN:22,ICT:14} },
+  { month:'November',  units:{PENGURUSAN:24,SAU:15,SKE:38,STS:32,UPA:11,HEP:19,PSH:13,EXAM:18,SMARTGREEN:6,PENTADBIRAN:27,ICT:17} },
+  { month:'Disember',  units:{PENGURUSAN:22,SAU:14,SKE:34,STS:28,UPA:10,HEP:17,PSH:12,EXAM:14,SMARTGREEN:5,PENTADBIRAN:25,ICT:16} },
+];
+
+/* ════════════════════════════════════════════════
+   LOCALSTORAGE
+════════════════════════════════════════════════ */
+function saveData() {
+  localStorage.setItem(LS_BILLS, JSON.stringify(appBills));
+  localStorage.setItem(LS_PAPER, JSON.stringify(appPaper));
+}
+
+function loadData() {
+  const b = localStorage.getItem(LS_BILLS);
+  const p = localStorage.getItem(LS_PAPER);
+  return {
+    bills: b ? JSON.parse(b) : JSON.parse(JSON.stringify(DEFAULT_BILLS)),
+    paper: p ? JSON.parse(p) : JSON.parse(JSON.stringify(DEFAULT_PAPER))
+  };
+}
+
+const loaded = loadData();
+let appBills = loaded.bills;
+let appPaper = loaded.paper;
+
+/* ════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════ */
+function fmtRM(v) {
+  return 'RM ' + Number(v).toLocaleString('ms-MY', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function showAlert(msg, isErr=false) {
+  const t = document.getElementById('alert-toast');
+  t.textContent = msg;
+  t.style.background = isErr ? '#dc2626' : '#064e3b';
+  t.style.display = 'block';
+  setTimeout(() => t.style.display='none', 3000);
+}
+function togglePanel(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+function resetData() {
+  if (!confirm('Reset semua data ke data simulasi asal? Semua kemaskini akan hilang.')) return;
+  localStorage.removeItem(LS_BILLS);
+  localStorage.removeItem(LS_PAPER);
+  location.reload();
+}
+
+/* ════════════════════════════════════════════════
+   TAB NAVIGATION
+════════════════════════════════════════════════ */
+function showView(viewId, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + viewId).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (viewId === 'overview') renderOverview();
+  if (viewId === 'graf')     renderCharts();
+  if (viewId === 'rekod')    { renderBillsTable(); renderPaperTable(); populateBilForm(); }
+}
+
+/* ════════════════════════════════════════════════
+   TAB 1 — OVERVIEW
+════════════════════════════════════════════════ */
+function renderOverview() {
+  const last = appBills.length - 1;
+  const cur  = appBills[last];
+  const prev = appBills[last > 0 ? last - 1 : 0];
+
+  function trendHTML(curVal, prevVal) {
+    if (curVal === prevVal) return `<span class="trend-eq">— Tiada Perubahan</span>`;
+    const pct = (((curVal - prevVal) / prevVal) * 100).toFixed(1);
+    if (curVal > prevVal)
+      return `<span class="trend-up">↑ +${pct}% vs ${prev.month}</span>`;
+    return `<span class="trend-down">↓ ${pct}% vs ${prev.month}</span>`;
+  }
+
+  const curJumlah  = cur.elektrik + cur.air + cur.kertas;
+  const prevJumlah = prev.elektrik + prev.air + prev.kertas;
+
+  document.getElementById('summary-cards').innerHTML = `
+    <div class="sum-card" style="background:var(--grad-elektrik)">
+      <div class="card-icon">💡</div>
+      <div class="card-label">Bil Elektrik</div>
+      <div class="card-value">${fmtRM(cur.elektrik)}</div>
+      <div class="card-trend">${trendHTML(cur.elektrik, prev.elektrik)}</div>
+      <div class="card-sub">${cur.month} 2026</div>
+    </div>
+    <div class="sum-card" style="background:var(--grad-air)">
+      <div class="card-icon">💧</div>
+      <div class="card-label">Bil Air</div>
+      <div class="card-value">${fmtRM(cur.air)}</div>
+      <div class="card-trend">${trendHTML(cur.air, prev.air)}</div>
+      <div class="card-sub">${cur.month} 2026</div>
+    </div>
+    <div class="sum-card" style="background:var(--grad-kertas)">
+      <div class="card-icon">📄</div>
+      <div class="card-label">Kos Kertas</div>
+      <div class="card-value">${fmtRM(cur.kertas)}</div>
+      <div class="card-trend">${trendHTML(cur.kertas, prev.kertas)}</div>
+      <div class="card-sub">${cur.month} 2026</div>
+    </div>
+    <div class="sum-card" style="background:var(--grad-jumlah)">
+      <div class="card-icon">💰</div>
+      <div class="card-label">Jumlah Keseluruhan</div>
+      <div class="card-value">${fmtRM(curJumlah)}</div>
+      <div class="card-trend">${trendHTML(curJumlah, prevJumlah)}</div>
+      <div class="card-sub">${cur.month} 2026</div>
+    </div>
+  `;
+
+  // YTD sums
+  let ytdE=0, ytdA=0, ytdK=0;
+  appBills.forEach(b => { ytdE+=b.elektrik; ytdA+=b.air; ytdK+=b.kertas; });
+  const ytdTotal = ytdE + ytdA + ytdK;
+
+  document.getElementById('ytd-row').innerHTML = `
+    <div class="kpi-card e"><div class="kpi-value">${fmtRM(ytdE)}</div><div class="kpi-label">⚡ YTD Elektrik</div></div>
+    <div class="kpi-card a"><div class="kpi-value">${fmtRM(ytdA)}</div><div class="kpi-label">💧 YTD Air</div></div>
+    <div class="kpi-card k"><div class="kpi-value">${fmtRM(ytdK)}</div><div class="kpi-label">📄 YTD Kertas</div></div>
+    <div class="kpi-card t"><div class="kpi-value">${fmtRM(ytdTotal)}</div><div class="kpi-label">💰 YTD Keseluruhan</div></div>
+  `;
+
+  // Highlights
+  const maxE = appBills.reduce((a,b) => b.elektrik>a.elektrik?b:a);
+  const maxA = appBills.reduce((a,b) => b.air>a.air?b:a);
+
+  // top paper unit
+  const unitTotals = {};
+  UNITS.forEach(u => unitTotals[u] = 0);
+  appPaper.forEach(p => UNITS.forEach(u => unitTotals[u] += p.units[u]||0));
+  const topUnit = Object.entries(unitTotals).sort((a,b) => b[1]-a[1])[0];
+
+  // avg monthly elektrik
+  const avgE = (ytdE / appBills.length).toFixed(0);
+
+  document.getElementById('highlight-row').innerHTML = `
+    <div class="kpi-card e">
+      <div class="kpi-value">${maxE.month}</div>
+      <div class="kpi-label">🔺 Bulan Tertinggi Elektrik (${fmtRM(maxE.elektrik)})</div>
+    </div>
+    <div class="kpi-card a">
+      <div class="kpi-value">${maxA.month}</div>
+      <div class="kpi-label">🔺 Bulan Tertinggi Air (${fmtRM(maxA.air)})</div>
+    </div>
+    <div class="kpi-card k">
+      <div class="kpi-value">${topUnit[0]}</div>
+      <div class="kpi-label">📄 Unit Paling Banyak Mohon Kertas (${topUnit[1]} rim)</div>
+    </div>
+    <div class="kpi-card t">
+      <div class="kpi-value">${fmtRM(avgE)}</div>
+      <div class="kpi-label">📊 Purata Bil Elektrik Bulanan</div>
+    </div>
+  `;
+}
+
+/* ════════════════════════════════════════════════
+   TAB 2 — CHARTS
+════════════════════════════════════════════════ */
+let chartInstances = {};
+
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => { if(c) c.destroy(); });
+  chartInstances = {};
+}
+
+const UNIT_COLORS = [
+  '#6366f1','#10b981','#f59e0b','#3b82f6','#ef4444',
+  '#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6'
+];
+
+function renderCharts() {
+  destroyCharts();
+
+  const labels   = appBills.map(b => b.month.substring(0,3));
+  const elektrik = appBills.map(b => b.elektrik);
+  const air      = appBills.map(b => b.air);
+  const kertas   = appBills.map(b => b.kertas);
+
+  // Chart 1 — Line
+  chartInstances.line = new Chart(document.getElementById('chartLine'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'Elektrik', data:elektrik, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.1)', tension:.4, fill:true, pointRadius:4 },
+        { label:'Air',      data:air,      borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.1)', tension:.4, fill:true, pointRadius:4 },
+        { label:'Kertas',   data:kertas,   borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', tension:.4, fill:true, pointRadius:4 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom' } },
+      scales:{
+        y:{ beginAtZero:false, ticks:{ callback: v=>'RM '+v.toLocaleString() } }
+      }
+    }
+  });
+
+  // Chart 2 — Bar
+  chartInstances.bar = new Chart(document.getElementById('chartBar'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'Elektrik', data:elektrik, backgroundColor:'rgba(245,158,11,.8)' },
+        { label:'Air',      data:air,      backgroundColor:'rgba(59,130,246,.8)' },
+        { label:'Kertas',   data:kertas,   backgroundColor:'rgba(16,185,129,.8)' },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom' } },
+      scales:{
+        y:{ beginAtZero:true, ticks:{ callback: v=>'RM '+v.toLocaleString() } }
+      }
+    }
+  });
+
+  // Chart 3 — Pie: cost distribution
+  const ytdE = elektrik.reduce((a,b)=>a+b,0);
+  const ytdA = air.reduce((a,b)=>a+b,0);
+  const ytdK = kertas.reduce((a,b)=>a+b,0);
+
+  chartInstances.pie1 = new Chart(document.getElementById('chartPie1'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Elektrik','Air','Kertas'],
+      datasets: [{
+        data: [ytdE, ytdA, ytdK],
+        backgroundColor: ['#f59e0b','#3b82f6','#10b981'],
+        borderWidth: 2, borderColor:'#fff'
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom' },
+        tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmtRM(ctx.raw)} (${(ctx.raw/(ytdE+ytdA+ytdK)*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+
+  // Chart 4 — Pie: paper by unit
+  const unitTotals = UNITS.map(u => appPaper.reduce((s,p)=>s+(p.units[u]||0),0));
+
+  chartInstances.pie2 = new Chart(document.getElementById('chartPie2'), {
+    type: 'pie',
+    data: {
+      labels: UNITS,
+      datasets: [{
+        data: unitTotals,
+        backgroundColor: UNIT_COLORS,
+        borderWidth: 2, borderColor:'#fff'
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ font:{ size:10 }, boxWidth:12 } },
+        tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} rim (${(ctx.raw/unitTotals.reduce((a,b)=>a+b,0)*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════
+   TAB 3 — REKOD: BILLS TABLE
+════════════════════════════════════════════════ */
+function pctChange(cur, prev) {
+  if (prev === 0) return `<span class="chg-eq">—</span>`;
+  const diff = ((cur - prev) / prev * 100).toFixed(1);
+  if (diff > 0)  return `<span class="chg-up">↑ +${diff}%</span>`;
+  if (diff < 0)  return `<span class="chg-down">↓ ${diff}%</span>`;
+  return `<span class="chg-eq">0%</span>`;
+}
+
+function renderBillsTable() {
+  let ytdE=0, ytdA=0, ytdK=0;
+  const rows = appBills.map((b, i) => {
+    const total = b.elektrik + b.air + b.kertas;
+    ytdE += b.elektrik; ytdA += b.air; ytdK += b.kertas;
+    const prev = i > 0 ? appBills[i - 1] : null;
+    const prevTotal = prev ? prev.elektrik + prev.air + prev.kertas : 0;
+    const ceE = prev ? pctChange(b.elektrik, prev.elektrik) : `<span class="chg-eq">—</span>`;
+    const ceA = prev ? pctChange(b.air,      prev.air)      : `<span class="chg-eq">—</span>`;
+    const ceK = prev ? pctChange(b.kertas,   prev.kertas)   : `<span class="chg-eq">—</span>`;
+    const ceT = prev ? pctChange(total,       prevTotal)    : `<span class="chg-eq">—</span>`;
+    return `<tr>
+      <td>${b.month}</td>
+      <td>${fmtRM(b.elektrik)}</td><td>${ceE}</td>
+      <td>${fmtRM(b.air)}</td><td>${ceA}</td>
+      <td>${fmtRM(b.kertas)}</td><td>${ceK}</td>
+      <td>${fmtRM(total)}</td><td>${ceT}</td>
+    </tr>`;
+  }).join('');
+  const ytdTotal = ytdE + ytdA + ytdK;
+  document.getElementById('bills-tbody').innerHTML = rows + `
+    <tr class="total-row">
+      <td>JUMLAH YTD</td>
+      <td>${fmtRM(ytdE)}</td><td>—</td>
+      <td>${fmtRM(ytdA)}</td><td>—</td>
+      <td>${fmtRM(ytdK)}</td><td>—</td>
+      <td>${fmtRM(ytdTotal)}</td><td>—</td>
+    </tr>`;
+}
+
+/* ════════════════════════════════════════════════
+   TAB 3 — REKOD: PAPER TABLE
+════════════════════════════════════════════════ */
+function renderPaperTable() {
+  // Header
+  document.getElementById('paper-thead').innerHTML =
+    `<tr><th>Bulan</th>${UNITS.map(u=>`<th>${u}</th>`).join('')}<th>Jumlah</th></tr>`;
+
+  // Unit totals row
+  const unitYTD = UNITS.map(u => appPaper.reduce((s,p)=>s+(p.units[u]||0),0));
+
+  const rows = appPaper.map(p => {
+    const rowTotal = UNITS.reduce((s,u)=>s+(p.units[u]||0),0);
+    return `<tr>
+      <td>${p.month}</td>
+      ${UNITS.map(u=>`<td>${p.units[u]||0}</td>`).join('')}
+      <td>${rowTotal}</td>
+    </tr>`;
+  }).join('');
+
+  const grandTotal = unitYTD.reduce((a,b)=>a+b,0);
+  document.getElementById('paper-tbody').innerHTML = rows + `
+    <tr class="total-row">
+      <td>JUMLAH YTD</td>
+      ${unitYTD.map(v=>`<td>${v}</td>`).join('')}
+      <td>${grandTotal}</td>
+    </tr>`;
+}
+
+/* ════════════════════════════════════════════════
+   BILL FORM
+════════════════════════════════════════════════ */
+function populateBilForm() {
+  const sel = document.getElementById('bf-month');
+  sel.innerHTML = MONTHS.map(m=>`<option value="${m}">${m}</option>`).join('');
+  fillBilForm();
+}
+
+function fillBilForm() {
+  const m = document.getElementById('bf-month').value;
+  const rec = appBills.find(b => b.month === m);
+  if (rec) {
+    document.getElementById('bf-elektrik').value = rec.elektrik;
+    document.getElementById('bf-air').value      = rec.air;
+    document.getElementById('bf-kertas').value   = rec.kertas;
+  }
+}
+
+function saveBil() {
+  const m = document.getElementById('bf-month').value;
+  const e = parseFloat(document.getElementById('bf-elektrik').value);
+  const a = parseFloat(document.getElementById('bf-air').value);
+  const k = parseFloat(document.getElementById('bf-kertas').value);
+  if ([e,a,k].some(v=>isNaN(v)||v<0)) { showAlert('⚠️ Sila masukkan nilai yang sah (nombor positif).', true); return; }
+  const rec = appBills.find(b => b.month === m);
+  if (rec) { rec.elektrik=e; rec.air=a; rec.kertas=k; }
+  saveData();
+  renderBillsTable();
+  renderOverview();
+  showAlert(`✅ Bil ${m} berjaya dikemaskini.`);
+}
+
+/* ════════════════════════════════════════════════
+   KERTAS FORM
+════════════════════════════════════════════════ */
+function buildKertasForm() {
+  const grid = document.getElementById('kertas-form-grid');
+  grid.innerHTML = `
+    <div class="form-field">
+      <label>Bulan</label>
+      <select id="kf-month" onchange="fillKertasForm()">${MONTHS.map(m=>`<option>${m}</option>`).join('')}</select>
+    </div>
+    ${UNITS.map(u=>`
+      <div class="form-field">
+        <label>${u} (Rim)</label>
+        <input type="number" id="kf-${u}" min="0" step="1" placeholder="0" />
+      </div>`).join('')}
+  `;
+  fillKertasForm();
+}
+
+function fillKertasForm() {
+  const m = document.getElementById('kf-month').value;
+  const rec = appPaper.find(p => p.month === m);
+  if (rec) UNITS.forEach(u => { const el=document.getElementById('kf-'+u); if(el) el.value=rec.units[u]||0; });
+}
+
+function saveKertas() {
+  const m = document.getElementById('kf-month').value;
+  const rec = appPaper.find(p => p.month === m);
+  if (!rec) return;
+  let valid = true;
+  UNITS.forEach(u => {
+    const v = parseInt(document.getElementById('kf-'+u).value);
+    if (isNaN(v)||v<0) { valid=false; return; }
+    rec.units[u] = v;
+  });
+  if (!valid) { showAlert('⚠️ Sila masukkan nilai yang sah.', true); return; }
+  saveData();
+  renderPaperTable();
+  showAlert(`✅ Permohonan kertas ${m} berjaya dikemaskini.`);
+}
+
+/* ════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  renderOverview();
+  buildKertasForm();
+});
+
+/* ════════════════════════════════════════════════
+   LOGIN
+════════════════════════════════════════════════ */
+const CREDS = {
+  admin: '64d2f4c0f3fc0a971740edfc96bace6c6e70dbb7167efd0b8e889f0b8c5e6d7e'
+};
+const LS_AUTH = 'energy_auth_2026';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin() {
+  const user = document.getElementById('li-user').value.trim().toLowerCase();
+  const pass = document.getElementById('li-pass').value;
+  const err  = document.getElementById('login-error');
+  if (!CREDS[user]) { err.style.display='block'; return; }
+  const hash = await sha256(pass);
+  if (hash !== CREDS[user]) { err.style.display='block'; return; }
+  err.style.display = 'none';
+  sessionStorage.setItem(LS_AUTH, '1');
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('app-wrapper').style.display   = 'block';
+}
+
+// Auto-skip login if already authenticated this session
+if (sessionStorage.getItem(LS_AUTH) === '1') {
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('app-wrapper').style.display   = 'block';
+}
+</script>
+
+</div><!-- end app-wrapper -->
+</body>
+</html>
